@@ -1,0 +1,45 @@
+# Copy to terraform.tfvars, review carefully, then set dry_run_mode = false.
+
+aws_region  = "af-south-1"
+environment = "dev"
+owner       = "platform-engineering"
+
+# Safe default: no resources are created until explicitly disabled.
+dry_run_mode = true
+
+# Custom VPC, no default VPC assumptions.
+vpc_cidr            = "10.40.0.0/16"
+public_subnet_cidr  = "10.40.1.0/24"
+private_subnet_cidr = "10.40.11.0/24"
+
+# NAT Gateway enables outbound internet from private subnets but has hourly and data charges.
+enable_nat_gateway = false
+
+# Initial Phase 1 host. Public IP can be useful for package installs without NAT, but SSH remains closed by default.
+assign_public_ip   = true
+instance_type      = "t2.micro"
+cpu_credits        = "standard"
+ubuntu_release     = "24.04"
+root_volume_size_gb = 8
+
+# Prefer SSM Session Manager. Enable SSH only for break-glass and restrict to a /32.
+use_ssm           = true
+enable_public_ssh = false
+allowed_ssh_cidr  = null
+# allowed_ssh_cidr = "203.0.113.10/32"
+
+# Keep app ports closed until an ALB/TLS/WAF path is added or CIDRs are deliberately restricted.
+open_app_ports    = false
+allowed_app_cidrs = []
+# allowed_app_cidrs = ["203.0.113.0/24"]
+# app_ports = [443]
+
+# Keep this false for Free Tier optimization. EBS remains encrypted with the AWS-managed EBS key.
+create_kms_key          = false
+enable_cloudwatch_agent = false
+ssm_parameter_prefix    = "/munch-catering/dev"
+
+additional_tags = {
+  CostCenter = "platform"
+  DataClass  = "internal"
+}

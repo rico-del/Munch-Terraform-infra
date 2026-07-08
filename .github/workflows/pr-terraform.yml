@@ -1,0 +1,58 @@
+name: "Terraform PR checks"
+
+on:
+  pull_request:
+    paths:
+      - 'infra/terraform/**'
+
+jobs:
+  fmt-validate-plan:
+    name: Fmt → Checkov → Validate → Plan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform fmt (check)
+        run: |
+          cd infra/terraform/environments/dev
+          terraform fmt -check -recursive
+
+      - name: Run Checkov (security scan)
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infra/terraform
+          skip_download: true
+
+      - name: Terraform init
+        run: |
+          cd infra/terraform/environments/dev
+          terraform init -backend=false
+
+      - name: Terraform validate
+        run: |
+          cd infra/terraform/environments/dev
+          terraform validate
+
+      - name: Terraform plan (write plan to artifact)
+        run: |
+          set -o pipefail
+          cd infra/terraform/environments/dev
+          terraform plan -refresh=false -out=plan.tfplan || true
+        continue-on-error: true
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: infra/terraform/environments/dev/plan.tfplan
