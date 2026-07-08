@@ -12,7 +12,7 @@ jobs:
   apply:
     name: Plan and Apply (manual)
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.event.inputs.environment }}
 
     permissions:
       contents: read
