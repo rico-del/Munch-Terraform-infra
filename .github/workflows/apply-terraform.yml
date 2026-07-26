@@ -54,9 +54,18 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           audience: sts.amazonaws.com
 
-       - name: Verify credentials
-         run: |
+      - name: Verify AWS credentials
+        run: |
+          echo "Region:"
+          echo "$AWS_REGION"
+
+          echo
+          echo "Caller identity:"
           aws sts get-caller-identity
+
+          echo
+          echo "Credential source:"
+          aws configure list
 
       - name: Terraform init
         run: |
