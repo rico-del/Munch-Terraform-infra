@@ -18,7 +18,6 @@ jobs:
       contents: read
       id-token: write
 
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,8 +35,17 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Environment: ${{ github.event.inputs.environment }}"
 
-      - name: Debug OIDC claims
-        uses: github/actions-oidc-debugger@main
+      - name: Print OIDC claims
+        shell: bash
+        run: |
+          TOKEN=$(curl -s \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" \
+            | jq -r '.value')
+
+          echo "================ JWT CLAIMS ================"
+          echo "$TOKEN" | cut -d '.' -f2 | base64 -d 2>/dev/null | jq
+          echo "============================================"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
