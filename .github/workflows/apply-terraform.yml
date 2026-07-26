@@ -44,7 +44,7 @@ jobs:
             | jq -r '.value')
 
           echo "================ JWT CLAIMS ================"
-          echo "$TOKEN" | cut -d '.' -f2 | base64 -d 2>/dev/null | jq
+          echo "$TOKEN" | cut -d '.' -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq || true
           echo "============================================"
 
       - name: Configure AWS credentials
