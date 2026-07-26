@@ -54,6 +54,10 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           audience: sts.amazonaws.com
 
+       - name: Verify credentials
+         run: |
+          aws sts get-caller-identity
+
       - name: Terraform init
         run: |
           cd infra/terraform/environments/${{ github.event.inputs.environment }}
