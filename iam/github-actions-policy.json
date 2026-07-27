@@ -94,9 +94,7 @@
     {
       "Sid": "SSMDescribeParameters",
       "Effect": "Allow",
-      "Action": [
-        "ssm:DescribeParameters"
-      ],
+      "Action": "ssm:DescribeParameters",
       "Resource": "*"
     },
     {
@@ -112,9 +110,7 @@
         "ssm:RemoveTagsFromResource",
         "ssm:ListTagsForResource"
       ],
-      "Resource": [
-        "arn:aws:ssm:eu-west-1:554013701313:parameter/munch-catering/*"
-      ]
+      "Resource": "arn:aws:ssm:eu-west-1:554013701313:parameter/munch-catering/*"
     },
     {
       "Sid": "CloudWatchLogs",
