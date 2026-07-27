@@ -92,14 +92,21 @@
             "Resource": "arn:aws:iam::554013701313:role/munch-catering-dev-ec2-role"
         },
         {
-            "Sid": "SSMParameters",
+            "Sid": "SSMDescribeParameters",
+            "Effect": "Allow",
+            "Action": [
+                "ssm:DescribeParameters"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SSMParameterStore",
             "Effect": "Allow",
             "Action": [
                 "ssm:PutParameter",
                 "ssm:GetParameter",
                 "ssm:GetParameters",
                 "ssm:GetParametersByPath",
-                "ssm:DescribeParameters",
                 "ssm:DeleteParameter",
                 "ssm:AddTagsToResource",
                 "ssm:RemoveTagsFromResource"
