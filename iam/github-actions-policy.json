@@ -109,7 +109,8 @@
         "ssm:GetParametersByPath",
         "ssm:DeleteParameter",
         "ssm:AddTagsToResource",
-        "ssm:RemoveTagsFromResource"
+        "ssm:RemoveTagsFromResource",
+        "ssm:ListTagsForResource"
       ],
       "Resource": [
         "arn:aws:ssm:eu-west-1:554013701313:parameter/munch-catering/*"
