@@ -155,6 +155,16 @@
         "dynamodb:UpdateItem"
       ],
       "Resource": "arn:aws:dynamodb:eu-west-1:554013701313:table/terraform-state-locks"
+    },
+    {
+      "Sid": "SSMRunCommandDeployment",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:SendCommand",
+        "ssm:GetCommandInvocation",
+        "ssm:ListCommandInvocations"
+      ],
+      "Resource": "*"
     }
   ]
 }
