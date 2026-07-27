@@ -1,17 +1,11 @@
-/*
-  Optional remote state backend.
+#left out Dynamo DB since Modern Terraform supports native S3 state locking when using recent Terraform versions and AWS provider support.
 
-  Terraform backend blocks cannot use variables. Before enabling this block,
-  bootstrap the S3 bucket and DynamoDB table described in README.md, then
-  uncomment and edit the values for your AWS account/region.
-*/
+terraform {
+  backend "s3" {
+    bucket  = "munch-terraform-state-554013701313"
+    key     = "munch-catering/dev/terraform.tfstate"
+    region  = "eu-west-1"
 
-# terraform {
-#   backend "s3" {
-#     bucket         = "REPLACE_WITH_UNIQUE_TF_STATE_BUCKET"
-#     key            = "munch-catering/dev/terraform.tfstate"
-#     region         = "us-east-1"
-#     dynamodb_table = "terraform-state-locks"
-#     encrypt        = true
-#   }
-# }
+    encrypt = true
+  }
+}
