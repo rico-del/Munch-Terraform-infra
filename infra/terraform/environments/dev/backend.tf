@@ -2,7 +2,6 @@
 
 terraform {
   backend "s3" {
-    bucket  = "munch-terraform-state-554013701313"
     key     = "munch-catering/dev/terraform.tfstate"
     region  = "eu-west-1"
 
