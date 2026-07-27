@@ -18,6 +18,30 @@ jobs:
       contents: read
       id-token: write
 
+    env:
+      TF_VAR_aws_region: ${{ vars.TF_VAR_aws_region }}
+      TF_VAR_environment: ${{ vars.TF_VAR_environment }}
+      TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      TF_VAR_dry_run_mode: ${{ vars.TF_VAR_dry_run_mode }}
+      TF_VAR_vpc_cidr: ${{ vars.TF_VAR_vpc_cidr }}
+      TF_VAR_public_subnet_cidr: ${{ vars.TF_VAR_public_subnet_cidr }}
+      TF_VAR_private_subnet_cidr: ${{ vars.TF_VAR_private_subnet_cidr }}
+      TF_VAR_enable_nat_gateway: ${{ vars.TF_VAR_enable_nat_gateway }}
+      TF_VAR_assign_public_ip: ${{ vars.TF_VAR_assign_public_ip }}
+      TF_VAR_enable_public_ssh: ${{ vars.TF_VAR_enable_public_ssh }}
+      TF_VAR_use_ssm: ${{ vars.TF_VAR_use_ssm }}
+      TF_VAR_open_app_ports: ${{ vars.TF_VAR_open_app_ports }}
+      TF_VAR_instance_type: ${{ vars.TF_VAR_instance_type }}
+      TF_VAR_cpu_credits: ${{ vars.TF_VAR_cpu_credits }}
+      TF_VAR_ubuntu_release: ${{ vars.TF_VAR_ubuntu_release }}
+      TF_VAR_root_volume_size_gb: ${{ vars.TF_VAR_root_volume_size_gb }}
+      TF_VAR_root_volume_type: ${{ vars.TF_VAR_root_volume_type }}
+      TF_VAR_create_kms_key: ${{ vars.TF_VAR_create_kms_key }}
+      TF_VAR_enable_cloudwatch_agent: ${{ vars.TF_VAR_enable_cloudwatch_agent }}
+      TF_VAR_cloudwatch_log_retention_days: ${{ vars.TF_VAR_cloudwatch_log_retention_days }}
+      TF_VAR_app_directory: ${{ vars.TF_VAR_app_directory }}
+      TF_VAR_ssm_parameter_prefix: ${{ vars.TF_VAR_ssm_parameter_prefix }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
