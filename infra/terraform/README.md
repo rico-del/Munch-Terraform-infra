@@ -141,9 +141,17 @@ terraform apply plan.out
 
 I kept this Terraform project deliberately simple because the goal was to learn the core of AWS and Terraform without turning the first version into a large production platform. The design choices below reflect that intent.
 
-### Why the state backend is left disabled by default
+## Why I switched to a remote backend
 
-The backend example in [infra/terraform/environments/dev/backend.tf](infra/terraform/environments/dev/backend.tf) is intentionally commented out. I wanted the project to be easy to start locally, and remote state adds another layer of setup that is not necessary for a first working deployment. When I do move to a shared setup, I would switch to S3 for state storage and DynamoDB for locking so that multiple people cannot overwrite each other’s changes.
+As the project grew to resemble a real-world infrastructure deployment, I wanted the Terraform workflow to reflect that as well. I also wanted to understand how remote backends work in practice rather than just reading about them.
+
+Terraform state is stored remotely in an Amazon S3 bucket, allowing both local development and GitHub Actions to work from the same source of truth. This avoids state drift, makes collaboration safer, and provides a more production-like workflow.
+
+Before running Terraform for the first time, ensure you have access to the configured backend bucket and initialize the working directory:
+
+```bash
+terraform init
+```
 
 ### Why I chose Session Manager over public SSH
 
