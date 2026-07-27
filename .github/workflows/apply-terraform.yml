@@ -92,7 +92,9 @@ jobs:
       - name: Terraform init
         run: |
           cd infra/terraform/environments/${{ github.event.inputs.environment }}
-          terraform init -input=false
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -input=false
 
       - name: Terraform plan
         run: |
