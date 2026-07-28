@@ -181,7 +181,7 @@ variable "cpu_credits" {
 variable "root_volume_size_gb" {
   description = "Encrypted root EBS volume size. AWS Free Tier includes up to 30 GB of EBS storage for eligible accounts."
   type        = number
-  default     = 30
+  default     = 8
 
   validation {
     condition     = var.root_volume_size_gb >= 8 && var.root_volume_size_gb <= 1024
