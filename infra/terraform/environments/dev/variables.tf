@@ -47,7 +47,7 @@ variable "additional_tags" {
 variable "dry_run_mode" {
   description = "Safe default. When true, no AWS resources are created. Set false after reviewing plan and tfvars."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "vpc_cidr" {
@@ -113,13 +113,13 @@ variable "allowed_ssh_cidr" {
 variable "open_app_ports" {
   description = "Open app ports from allowed_app_cidrs. Disabled by default; production should use ALB + ACM + WAF."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "allowed_app_cidrs" {
   description = "CIDRs allowed to reach app_ports when open_app_ports is true."
   type        = list(string)
-  default     = []
+  default     = ["0.0.0.0/0"]
 
   validation {
     condition     = alltrue([for cidr in var.allowed_app_cidrs : can(cidrhost(cidr, 0))])
@@ -159,7 +159,7 @@ variable "ubuntu_release" {
 variable "instance_type" {
   description = "EC2 instance size for the initial Docker Compose host. Default is Free Tier oriented; larger sizes are healthier for the full platform but may cost money."
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 
   validation {
     condition     = contains(["t2.micro", "t3.micro", "t3.small", "t3.medium", "t3.large"], var.instance_type)
@@ -181,7 +181,7 @@ variable "cpu_credits" {
 variable "root_volume_size_gb" {
   description = "Encrypted root EBS volume size. AWS Free Tier includes up to 30 GB of EBS storage for eligible accounts."
   type        = number
-  default     = 30
+  default     = 8
 
   validation {
     condition     = var.root_volume_size_gb >= 8 && var.root_volume_size_gb <= 1024
