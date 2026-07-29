@@ -126,7 +126,8 @@
         "logs:DescribeLogStreams",
         "logs:PutRetentionPolicy",
         "logs:TagResource",
-        "logs:UntagResource"
+        "logs:UntagResource",
+        "logs:ListTagsForResource"
       ],
       "Resource": "*"
     },
