@@ -35,7 +35,6 @@ jobs:
       TF_VAR_cpu_credits: ${{ vars.TF_VAR_cpu_credits }}
       TF_VAR_ubuntu_release: ${{ vars.TF_VAR_ubuntu_release }}
       TF_VAR_root_volume_size_gb: ${{ vars.TF_VAR_root_volume_size_gb }}
-      TF_VAR_create_kms_key: ${{ vars.TF_VAR_create_kms_key }}
       TF_VAR_enable_cloudwatch_agent: ${{ vars.TF_VAR_enable_cloudwatch_agent }}
       TF_VAR_app_directory: ${{ vars.TF_VAR_app_directory }}
       TF_VAR_ssm_parameter_prefix: ${{ vars.TF_VAR_ssm_parameter_prefix }}
