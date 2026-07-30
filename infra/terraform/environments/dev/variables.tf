@@ -181,7 +181,7 @@ variable "cpu_credits" {
 variable "root_volume_size_gb" {
   description = "Encrypted root EBS volume size. AWS Free Tier includes up to 30 GB of EBS storage for eligible accounts."
   type        = number
-  default     = 8
+  default     = 30
 
   validation {
     condition     = var.root_volume_size_gb >= 8 && var.root_volume_size_gb <= 1024
@@ -220,7 +220,7 @@ variable "kms_deletion_window" {
 variable "enable_cloudwatch_agent" {
   description = "Install CloudWatch agent and create log group. Optional to reduce cost/noise in dev."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "cloudwatch_log_retention_days" {
