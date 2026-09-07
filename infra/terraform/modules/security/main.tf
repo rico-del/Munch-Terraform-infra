@@ -19,6 +19,49 @@ resource "aws_vpc_security_group_ingress_rule" "ssh" {
   to_port           = 22
 }
 
+resource "aws_security_group" "alb" {
+  count       = var.enable_alb ? 1 : 0
+  name        = "${var.name_prefix}-alb-sg"
+  description = "Security group for the public Munch Catering ALB"
+  vpc_id      = var.vpc_id
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-alb-sg"
+  })
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_http" {
+  for_each = var.enable_alb ? {
+    for pair in setproduct(var.alb_ingress_ports, var.alb_ingress_cidrs) : "${pair[0]}-${pair[1]}" => {
+      port = pair[0]
+      cidr = pair[1]
+    }
+  } : {}
+  security_group_id = aws_security_group.alb[0].id
+  description       = "Public ALB listener on port ${each.value.port}"
+  cidr_ipv4         = each.value.cidr
+  from_port         = each.value.port
+  ip_protocol       = "tcp"
+  to_port           = each.value.port
+}
+
+resource "aws_vpc_security_group_egress_rule" "alb_all" {
+  count             = var.enable_alb ? 1 : 0
+  security_group_id = aws_security_group.alb[0].id
+  description       = "ALB egress to application targets"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "ec2_from_alb" {
+  count                        = var.enable_alb ? 1 : 0
+  security_group_id            = aws_security_group.ec2.id
+  referenced_security_group_id = aws_security_group.alb[0].id
+  description                  = "Application traffic from the ALB only"
+  from_port                    = var.target_port
+  ip_protocol                  = "tcp"
+  to_port                      = var.target_port
+}
+
 resource "aws_vpc_security_group_ingress_rule" "app" {
   for_each = var.open_app_ports ? {
     for pair in setproduct(var.app_ports, var.allowed_app_cidrs) : "${pair[0]}-${pair[1]}" => {

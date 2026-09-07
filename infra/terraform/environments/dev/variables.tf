@@ -110,8 +110,145 @@ variable "allowed_ssh_cidr" {
   }
 }
 
+variable "preserve_legacy_instance" {
+  description = "Safe staged migration: keeps the legacy standalone EC2 instance and Elastic IP active alongside the new ASG/ALB until cutover verification is complete."
+  type        = bool
+  default     = true
+}
+
+variable "enable_alb" {
+  description = "Provision Application Load Balancer and ALB security group."
+  type        = bool
+  default     = true
+}
+
+variable "alb_ingress_ports" {
+  description = "Ports open on the public ALB listener."
+  type        = list(number)
+  default     = [80, 8080]
+}
+
+variable "alb_ingress_cidrs" {
+  description = "CIDR blocks allowed to reach the ALB listener."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "app_port" {
+  description = "Port on which the EC2/Docker host receives HTTP traffic from the ALB."
+  type        = number
+  default     = 80
+}
+
+variable "health_check_path" {
+  description = "Health check HTTP path tested by the ALB Target Group."
+  type        = string
+  default     = "/health"
+}
+
+variable "active_deployment_slot" {
+  description = "Active deployment slot routed by the ALB listener: 'blue' or 'green'."
+  type        = string
+  default     = "blue"
+
+  validation {
+    condition     = contains(["blue", "green"], var.active_deployment_slot)
+    error_message = "active_deployment_slot must be either 'blue' or 'green'."
+  }
+}
+
+variable "asg_min_size" {
+  description = "Minimum number of instances in the primary ASG."
+  type        = number
+  default     = 1
+}
+
+variable "asg_max_size" {
+  description = "Maximum number of instances in the primary ASG."
+  type        = number
+  default     = 4
+}
+
+variable "asg_desired_capacity" {
+  description = "Desired number of instances in the primary ASG."
+  type        = number
+  default     = 2
+}
+
+variable "enable_https" {
+  description = "Enable HTTPS listener on port 443 (requires certificate_arn or create_acm_certificate=true with domain_name)."
+  type        = bool
+  default     = false
+}
+
+variable "create_acm_certificate" {
+  description = "Whether to provision an ACM certificate via Terraform (requires public domain_name)."
+  type        = bool
+  default     = false
+}
+
+variable "domain_name" {
+  description = "Public domain name for the ACM certificate."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "subject_alternative_names" {
+  description = "Subject alternative domain names for the ACM certificate."
+  type        = list(string)
+  default     = []
+}
+
+variable "certificate_arn" {
+  description = "ACM Certificate ARN for the HTTPS listener."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "redirect_http_to_https" {
+  description = "Redirect HTTP port 80 traffic to HTTPS port 443."
+  type        = bool
+  default     = true
+}
+
+variable "initial_image_tag" {
+  description = "Existing immutable Git SHA present in both ECR repositories; supplied by the GitHub environment as TF_VAR_initial_image_tag."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9a-f]{7,64}$", var.initial_image_tag))
+    error_message = "initial_image_tag must be an immutable lowercase hexadecimal Git SHA (7-64 characters), never latest."
+  }
+}
+
+variable "enable_green_asg" {
+  description = "Enable secondary green ASG for blue-green deployments."
+  type        = bool
+  default     = false
+}
+
+variable "green_asg_min_size" {
+  description = "Minimum number of instances in the standby (green) ASG."
+  type        = number
+  default     = 1
+}
+
+variable "green_asg_max_size" {
+  description = "Maximum number of instances in the standby (green) ASG."
+  type        = number
+  default     = 2
+}
+
+variable "green_asg_desired_capacity" {
+  description = "Desired number of instances in the standby (green) ASG."
+  type        = number
+  default     = 1
+}
+
 variable "open_app_ports" {
-  description = "Open app ports from allowed_app_cidrs. Disabled by default; production should use ALB + ACM + WAF."
+  description = "Open direct EC2 app ports from allowed_app_cidrs. Keep true during staged migration for backward compatibility, then set false once ALB traffic is verified."
   type        = bool
   default     = true
 }
@@ -239,17 +376,4 @@ variable "ssm_parameter_prefix" {
   description = "Prefix for runtime configuration/secrets stored outside Terraform state."
   type        = string
   default     = "/munch-catering/dev"
-}
-
-variable "example_secret_names" {
-  description = "Example names for SSM SecureString or Secrets Manager values. Values are intentionally not managed by Terraform."
-  type        = list(string)
-  default = [
-    "database_url",
-    "postgres_password",
-    "redis_password",
-    "jwt_secret",
-    "grafana_admin_password",
-    "openai_api_key"
-  ]
 }

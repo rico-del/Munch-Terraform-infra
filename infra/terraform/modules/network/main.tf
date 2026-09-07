@@ -3,7 +3,8 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  az = coalesce(var.availability_zone, data.aws_availability_zones.available.names[0])
+  az        = coalesce(var.availability_zone, data.aws_availability_zones.available.names[0])
+  second_az = coalesce(var.secondary_availability_zone, element([for name in data.aws_availability_zones.available.names : name if name != local.az], 0))
 }
 
 resource "aws_vpc" "this" {
@@ -36,6 +37,24 @@ resource "aws_subnet" "public" {
   })
 }
 
+resource "aws_subnet" "public_secondary" {
+  count                   = var.enable_secondary_public_subnet ? 1 : 0
+  vpc_id                  = aws_vpc.this.id
+  cidr_block              = var.secondary_public_subnet_cidr
+  availability_zone       = local.second_az
+  map_public_ip_on_launch = var.assign_public_ip
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-public-${local.second_az}"
+    Tier = "public"
+  })
+}
+
+resource "aws_route_table_association" "public_secondary" {
+  count          = var.enable_secondary_public_subnet ? 1 : 0
+  subnet_id      = aws_subnet.public_secondary[0].id
+  route_table_id = aws_route_table.public.id
+}
+
 resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.this.id
   cidr_block        = var.private_subnet_cidr
@@ -43,6 +62,18 @@ resource "aws_subnet" "private" {
 
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-private-${local.az}"
+    Tier = "private"
+  })
+}
+
+resource "aws_subnet" "private_secondary" {
+  count             = var.enable_secondary_private_subnet ? 1 : 0
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = var.secondary_private_subnet_cidr
+  availability_zone = local.second_az
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-private-${local.second_az}"
     Tier = "private"
   })
 }
@@ -107,5 +138,11 @@ resource "aws_route" "private_nat" {
 
 resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private_secondary" {
+  count          = var.enable_secondary_private_subnet ? 1 : 0
+  subnet_id      = aws_subnet.private_secondary[0].id
   route_table_id = aws_route_table.private.id
 }

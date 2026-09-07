@@ -109,5 +109,92 @@ EOF
 %{ endif }
 apt-get autoremove -y
 apt-get clean
+
+# -----------------------------------------------------------------------------
+# Automated Application Container Bootstrap
+# -----------------------------------------------------------------------------
+IMDS_TOKEN=$(curl -s -S -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || true)
+AWS_REGION="eu-west-1"
+SLOT_NAME="blue"
+
+if [ -n "$IMDS_TOKEN" ]; then
+  AWS_REGION=$(curl -s -S -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || echo "eu-west-1")
+  SLOT_TAG=$(curl -s -S -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Slot 2>/dev/null || true)
+  if [ -n "$SLOT_TAG" ]; then
+    SLOT_NAME="$SLOT_TAG"
+  fi
+fi
+
+get_required_parameter() {
+  local parameter_name="$1"
+  local decrypt="$2"
+  local parameter_value
+
+  if [ "$decrypt" = "true" ]; then
+    parameter_value=$(aws ssm get-parameter --name "$parameter_name" --with-decryption --region "$AWS_REGION" --query "Parameter.Value" --output text)
+  else
+    parameter_value=$(aws ssm get-parameter --name "$parameter_name" --region "$AWS_REGION" --query "Parameter.Value" --output text)
+  fi
+
+  if [ -z "$parameter_value" ] || [ "$parameter_value" = "None" ]; then
+    echo "CRITICAL ERROR: Required SSM parameter $parameter_name is empty."
+    exit 1
+  fi
+
+  printf '%s' "$parameter_value"
+}
+
+# Every ASG runtime input comes from one canonical SSM path.
+APP_DIR=$(get_required_parameter "$SSM_PARAMETER_PREFIX/config/app_directory" false)
+ECR_REGISTRY=$(get_required_parameter "$SSM_PARAMETER_PREFIX/config/ecr_registry" false)
+S3_BUCKET_NAME=$(get_required_parameter "$SSM_PARAMETER_PREFIX/config/s3_bucket_name" false)
+IMAGE_TAG=$(get_required_parameter "$SSM_PARAMETER_PREFIX/deploy/$SLOT_NAME/image_tag" false)
+MONGO_URI=$(get_required_parameter "$SSM_PARAMETER_PREFIX/secrets/mongo_uri" true)
+SECRET_KEY=$(get_required_parameter "$SSM_PARAMETER_PREFIX/secrets/secret_key" true)
+
+if [[ ! "$IMAGE_TAG" =~ ^[0-9a-f]{7,64}$ ]]; then
+  echo "CRITICAL ERROR: IMAGE_TAG must be an immutable lowercase hexadecimal Git SHA."
+  exit 1
+fi
+
+if [ "$SECRET_KEY" = "dev-secret-key" ] || [ "$SECRET_KEY" = "dev-insecure-secret-key" ] || [ "$SECRET_KEY" = "change-me-in-production" ]; then
+  echo "CRITICAL ERROR: Insecure SECRET_KEY in SSM Parameter Store."
+  exit 1
+fi
+
+case "$APP_DIR" in
+  /*) ;;
+  *) echo "CRITICAL ERROR: APP_DIRECTORY must be an absolute path."; exit 1 ;;
+esac
+
+APP_REPO_URL="https://github.com/Derickk-arch/Munch_Catering.git"
+
+if [ ! -d "$APP_DIR/.git" ]; then
+  git clone --depth 1 "$APP_REPO_URL" "$APP_DIR"
+fi
+
+cat > "$APP_DIR/.env" <<ENVEOF
+APP_ENV=production
+WEB_PORT=80
+IMAGE_TAG=$IMAGE_TAG
+ECR_REGISTRY=$ECR_REGISTRY
+MONGO_URI=$MONGO_URI
+DB_NAME=munch_catering
+SECRET_KEY=$SECRET_KEY
+ALGORITHM=HS256
+PAYMENT_PROVIDER=test
+MPESA_ENV=sandbox
+S3_BUCKET_NAME=$S3_BUCKET_NAME
+AWS_REGION=$AWS_REGION
+ENVEOF
+
+chown -R app:app "$APP_DIR"
+
+# Authenticate to ECR and start the application containers.
+aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+cd "$APP_DIR"
+docker compose pull
+docker compose up -d
+
 touch "$APP_DIR/.provisioned"
 chown app:app "$APP_DIR/.provisioned"

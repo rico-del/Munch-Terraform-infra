@@ -18,6 +18,12 @@ variable "allowed_ssm_parameter_arns" {
   description = "SSM parameter ARNs the EC2 role may read."
 }
 
+variable "s3_bucket_arns" {
+  type        = list(string)
+  description = "S3 bucket ARNs the EC2 role may access for media storage."
+  default     = []
+}
+
 variable "tags" {
   type        = map(string)
   description = "Common tags."

@@ -3,6 +3,11 @@ output "ec2_security_group_id" {
   description = "EC2 security group ID."
 }
 
+output "alb_security_group_id" {
+  value       = try(aws_security_group.alb[0].id, null)
+  description = "ALB security group ID, if enabled."
+}
+
 output "kms_key_arn" {
   value       = try(aws_kms_key.ebs[0].arn, null)
   description = "Customer-managed KMS key ARN, if created."

@@ -1,9 +1,16 @@
-output "example_secret_parameter_paths" {
-  value       = local.example_secret_parameter_paths
-  description = "Example SSM SecureString parameter paths. Values are intentionally unmanaged."
+output "config_parameter_names" {
+  value = [
+    aws_ssm_parameter.config_app_directory.name,
+    aws_ssm_parameter.config_ecr_registry.name,
+    aws_ssm_parameter.config_s3_bucket_name.name,
+  ]
+  description = "Terraform-managed non-secret configuration parameter paths."
 }
 
-output "app_directory_parameter_name" {
-  value       = aws_ssm_parameter.app_directory.name
-  description = "Non-secret app directory parameter."
+output "deployment_parameter_names" {
+  value = [
+    aws_ssm_parameter.deploy_blue_image_tag.name,
+    aws_ssm_parameter.deploy_green_image_tag.name,
+  ]
+  description = "Terraform-created deployment parameter paths updated by GitHub Actions."
 }

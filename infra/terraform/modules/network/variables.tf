@@ -20,7 +20,13 @@ variable "private_subnet_cidr" {
 
 variable "availability_zone" {
   type        = string
-  description = "Optional AZ override."
+  description = "Optional AZ override for primary subnets."
+  default     = null
+}
+
+variable "secondary_availability_zone" {
+  type        = string
+  description = "Optional AZ override for secondary subnets."
   default     = null
 }
 
@@ -37,6 +43,30 @@ variable "single_nat_gateway" {
 variable "assign_public_ip" {
   type        = bool
   description = "Whether public subnet should map public IPs on launch."
+}
+
+variable "enable_secondary_public_subnet" {
+  type        = bool
+  description = "Create a second public subnet in another AZ for ALB/ASG readiness."
+  default     = true
+}
+
+variable "secondary_public_subnet_cidr" {
+  type        = string
+  description = "CIDR block for the optional secondary public subnet."
+  default     = "10.40.2.0/24"
+}
+
+variable "enable_secondary_private_subnet" {
+  type        = bool
+  description = "Create a second private subnet in another AZ for database/compute readiness."
+  default     = false
+}
+
+variable "secondary_private_subnet_cidr" {
+  type        = string
+  description = "CIDR block for the optional secondary private subnet."
+  default     = "10.40.12.0/24"
 }
 
 variable "tags" {

@@ -38,6 +38,11 @@ jobs:
       TF_VAR_enable_cloudwatch_agent: ${{ vars.TF_VAR_enable_cloudwatch_agent }}
       TF_VAR_app_directory: ${{ vars.TF_VAR_app_directory }}
       TF_VAR_ssm_parameter_prefix: ${{ vars.TF_VAR_ssm_parameter_prefix }}
+      TF_VAR_enable_alb: ${{ vars.TF_VAR_enable_alb }}
+      TF_VAR_preserve_legacy_instance: ${{ vars.TF_VAR_preserve_legacy_instance }}
+      TF_VAR_active_deployment_slot: ${{ vars.TF_VAR_active_deployment_slot }}
+      TF_VAR_asg_desired_capacity: ${{ vars.TF_VAR_asg_desired_capacity }}
+      TF_VAR_initial_image_tag: ${{ vars.TF_VAR_initial_image_tag }}
 
     steps:
       - name: Checkout

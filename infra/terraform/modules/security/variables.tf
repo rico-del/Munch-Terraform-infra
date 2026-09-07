@@ -20,6 +20,30 @@ variable "allowed_ssh_cidr" {
   nullable    = true
 }
 
+variable "enable_alb" {
+  type        = bool
+  description = "Whether to create an ALB security group and allow ALB-to-EC2 traffic."
+  default     = true
+}
+
+variable "alb_ingress_cidrs" {
+  type        = list(string)
+  description = "CIDRs allowed to reach the public ALB listener."
+  default     = ["0.0.0.0/0"]
+}
+
+variable "alb_ingress_ports" {
+  type        = list(number)
+  description = "Ports open on the public ALB."
+  default     = [80, 443, 8080]
+}
+
+variable "target_port" {
+  type        = number
+  description = "Target port on the EC2 instances that the ALB reaches."
+  default     = 80
+}
+
 variable "open_app_ports" {
   type        = bool
   description = "Whether to create restricted app ingress."

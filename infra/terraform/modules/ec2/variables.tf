@@ -25,9 +25,75 @@ variable "cpu_credits" {
   description = "T-series CPU credit setting."
 }
 
-variable "subnet_id" {
+variable "preserve_legacy_instance" {
+  type        = bool
+  description = "If true, keeps the legacy standalone EC2 instance and Elastic IP during the staged transition to Launch Template and ASG."
+  default     = true
+}
+
+variable "primary_subnet_id" {
   type        = string
-  description = "Subnet ID for EC2."
+  description = "Primary subnet ID for legacy instance."
+  default     = null
+}
+
+variable "subnet_ids" {
+  type        = list(string)
+  description = "Subnet IDs where the ASG may launch EC2 instances."
+}
+
+variable "target_group_arns" {
+  type        = list(string)
+  description = "Target group ARNs to attach the primary (blue) ASG to."
+  default     = []
+}
+
+variable "min_size" {
+  type        = number
+  description = "Minimum size of the primary ASG."
+  default     = 1
+}
+
+variable "max_size" {
+  type        = number
+  description = "Maximum size of the primary ASG."
+  default     = 2
+}
+
+variable "desired_capacity" {
+  type        = number
+  description = "Desired capacity of the primary ASG."
+  default     = 1
+}
+
+variable "enable_green_asg" {
+  type        = bool
+  description = "Enable standby green ASG for blue-green deployments."
+  default     = false
+}
+
+variable "green_target_group_arns" {
+  type        = list(string)
+  description = "Target group ARNs to attach the standby (green) ASG to."
+  default     = []
+}
+
+variable "green_min_size" {
+  type        = number
+  description = "Minimum size of the green ASG."
+  default     = 1
+}
+
+variable "green_max_size" {
+  type        = number
+  description = "Maximum size of the green ASG."
+  default     = 2
+}
+
+variable "green_desired_capacity" {
+  type        = number
+  description = "Desired capacity of the green ASG."
+  default     = 1
 }
 
 variable "security_group_ids" {

@@ -5,29 +5,35 @@ This repository contains a modular Terraform implementation for a small AWS-base
 ## What this project demonstrates
 
 - Terraform module structure with separate environment and reusable modules
-- AWS networking, IAM, EC2, SSM, security group, and CloudWatch configuration
-- Safe-by-default deployment behavior through a dry-run switch
-- Secure access patterns using AWS Systems Manager Session Manager instead of public SSH by default
-- GitHub Actions workflows for validation and manual apply
+- AWS networking (multi-AZ VPC, subnets, route tables, internet gateway)
+- Modern compute architecture using AWS Launch Template and Auto Scaling Group (ASG)
+- Application Load Balancer (ALB) with Blue and Green Target Groups for zero-downtime blue-green deployments
+- Safe-by-default deployment behavior through a dry-run switch and staged migration support
+- Secure access patterns using AWS Systems Manager Session Manager instead of public SSH
+- IAM least privilege for ECR image pulling, SSM parameters, and CloudWatch logging
+- GitHub Actions workflows for validation, plan artifact generation, and manual apply
 
 ## Architecture at a glance
 
-The environment creates a custom VPC, one public subnet, one private subnet, an EC2 instance, an IAM role/profile, security groups, optional CloudWatch logging, and SSM parameters for runtime configuration.
-
-![Munch Catering AWS architecture](docs/architecture_diagram.png)
-
-The diagram is a simplified view of the Terraform topology and uses CIDR ranges for the network layout rather than actual host addresses.
+The environment provisions:
+1. **Networking**: Custom VPC across multiple Availability Zones with public and private subnets.
+2. **Ingress & Load Balancing**: Public Application Load Balancer (ALB) routing to active Blue/Green Target Groups with health checking.
+3. **Compute**: Auto Scaling Group (ASG) launching instances from an immutable AWS Launch Template with IMDSv2, EBS gp3 encryption, and automated Docker bootstrapping.
+4. **Security**: Multi-tier Security Groups enforcing least privilege (ALB accepts HTTP/HTTPS; EC2 instances accept HTTP traffic strictly from the ALB security group).
+5. **IAM**: Scoped EC2 instance profile for AWS Systems Manager (SSM) and ECR image pulling.
+6. **Configuration & Observability**: SSM Parameter Store for runtime configuration and CloudWatch Log Groups for container logs.
 
 ## Repository structure
 
 - `environments/dev/main.tf` — wires the environment together and calls each module
 - `environments/dev/variables.tf` — defines inputs, defaults, and validation rules
-- `environments/dev/backend.tf` — contains an example remote state backend block
+- `environments/dev/backend.tf` — contains remote state backend block (S3 with native locking)
 - `environments/dev/terraform.tfvars.example` — example values for local configuration
-- `modules/network` — VPC, subnets, route tables, internet gateway, and optional NAT gateway
-- `modules/security` — security groups, ingress/egress rules, and optional KMS key
-- `modules/ec2` — EC2 instance and bootstrap user data
-- `modules/iam` — IAM role, instance profile, and scoped policies
+- `modules/network` — VPC, multi-AZ subnets, route tables, internet gateway, and optional NAT gateway
+- `modules/security` — security groups for ALB and EC2, ingress/egress rules, and optional KMS key
+- `modules/alb` — Application Load Balancer, Blue/Green target groups, and HTTP listener
+- `modules/ec2` — Launch Template, Auto Scaling Group (Blue/Green), and bootstrap user data
+- `modules/iam` — IAM role, instance profile, and scoped policies for SSM and ECR
 - `modules/ssm` — SSM parameters for app configuration
 - `modules/monitoring` — CloudWatch log group for optional logging
 

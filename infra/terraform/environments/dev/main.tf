@@ -17,6 +17,8 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 locals {
   name_prefix       = "${var.project_name}-${var.environment}"
   resource_enabled  = !var.dry_run_mode
@@ -40,15 +42,27 @@ module "network" {
 
   source = "../../modules/network"
 
-  name_prefix         = local.name_prefix
-  vpc_cidr            = var.vpc_cidr
-  public_subnet_cidr  = var.public_subnet_cidr
-  private_subnet_cidr = var.private_subnet_cidr
-  availability_zone   = var.availability_zone
-  enable_nat_gateway  = var.enable_nat_gateway
-  single_nat_gateway  = var.single_nat_gateway
-  assign_public_ip    = var.assign_public_ip
-  tags                = local.common_tags
+  name_prefix                    = local.name_prefix
+  vpc_cidr                       = var.vpc_cidr
+  public_subnet_cidr             = var.public_subnet_cidr
+  private_subnet_cidr            = var.private_subnet_cidr
+  availability_zone              = var.availability_zone
+  enable_secondary_public_subnet = true
+  enable_nat_gateway             = var.enable_nat_gateway
+  single_nat_gateway             = var.single_nat_gateway
+  assign_public_ip               = var.assign_public_ip
+  tags                           = local.common_tags
+}
+
+module "s3" {
+  count = local.resource_enabled ? 1 : 0
+
+  source = "../../modules/s3"
+
+  name_prefix = local.name_prefix
+  environment = var.environment
+  account_id  = data.aws_caller_identity.current.account_id
+  tags        = local.common_tags
 }
 
 module "iam" {
@@ -62,7 +76,8 @@ module "iam" {
   allowed_ssm_parameter_arns = [
     "arn:aws:ssm:${var.aws_region}:*:parameter${var.ssm_parameter_prefix}/*"
   ]
-  tags = local.common_tags
+  s3_bucket_arns = [try(module.s3[0].bucket_arn, "")]
+  tags           = local.common_tags
 }
 
 module "ssm" {
@@ -72,8 +87,10 @@ module "ssm" {
 
   name_prefix          = local.name_prefix
   ssm_parameter_prefix = var.ssm_parameter_prefix
-  example_secret_names = var.example_secret_names
   app_directory        = var.app_directory
+  s3_bucket_name       = try(module.s3[0].bucket_name, null)
+  ecr_registry         = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+  initial_image_tag    = var.initial_image_tag
   tags                 = local.common_tags
 }
 
@@ -96,6 +113,10 @@ module "security" {
   vpc_id              = module.network[0].vpc_id
   enable_public_ssh   = local.ssh_enabled
   allowed_ssh_cidr    = var.allowed_ssh_cidr
+  enable_alb          = var.enable_alb
+  alb_ingress_ports   = var.alb_ingress_ports
+  alb_ingress_cidrs   = var.alb_ingress_cidrs
+  target_port         = var.app_port
   open_app_ports      = local.app_ports_enabled
   allowed_app_cidrs   = var.allowed_app_cidrs
   app_ports           = var.app_ports
@@ -104,19 +125,61 @@ module "security" {
   tags                = local.common_tags
 }
 
+module "acm" {
+  count = local.resource_enabled && var.create_acm_certificate && var.domain_name != null ? 1 : 0
+
+  source = "../../modules/acm"
+
+  name_prefix               = local.name_prefix
+  environment               = var.environment
+  create_certificate        = var.create_acm_certificate
+  domain_name               = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+  tags                      = local.common_tags
+}
+
+module "alb" {
+  count = local.resource_enabled && var.enable_alb ? 1 : 0
+
+  source = "../../modules/alb"
+
+  name_prefix            = local.name_prefix
+  vpc_id                 = module.network[0].vpc_id
+  subnet_ids             = module.network[0].public_subnet_ids
+  security_group_id      = module.security[0].alb_security_group_id
+  target_port            = var.app_port
+  health_check_path      = var.health_check_path
+  active_slot            = var.active_deployment_slot
+  enable_https           = var.enable_https
+  certificate_arn        = var.certificate_arn != null ? var.certificate_arn : try(module.acm[0].certificate_arn, null)
+  redirect_http_to_https = var.redirect_http_to_https
+  tags                   = local.common_tags
+}
+
 module "ec2" {
   count = local.resource_enabled ? 1 : 0
 
   source = "../../modules/ec2"
 
   name_prefix               = local.name_prefix
+  preserve_legacy_instance  = var.preserve_legacy_instance
   ami_id                    = var.ami_id
   ubuntu_release            = var.ubuntu_release
   instance_type             = var.instance_type
   cpu_credits               = var.cpu_credits
-  subnet_id                 = var.assign_public_ip ? module.network[0].public_subnet_id : module.network[0].private_subnet_id
+  primary_subnet_id         = var.assign_public_ip ? module.network[0].public_subnet_id : module.network[0].private_subnet_id
+  subnet_ids                = var.assign_public_ip ? module.network[0].public_subnet_ids : [module.network[0].private_subnet_id]
   security_group_ids        = [module.security[0].ec2_security_group_id]
   iam_instance_profile_name = module.iam[0].instance_profile_name
+  target_group_arns         = var.enable_alb ? [module.alb[0].blue_target_group_arn] : []
+  min_size                  = var.asg_min_size
+  max_size                  = var.asg_max_size
+  desired_capacity          = var.asg_desired_capacity
+  enable_green_asg          = var.enable_green_asg
+  green_target_group_arns   = var.enable_alb ? [module.alb[0].green_target_group_arn] : []
+  green_min_size            = var.green_asg_min_size
+  green_max_size            = var.green_asg_max_size
+  green_desired_capacity    = var.green_asg_desired_capacity
   assign_public_ip          = var.assign_public_ip
   root_volume_size_gb       = var.root_volume_size_gb
   root_volume_type          = var.root_volume_type
@@ -126,6 +189,10 @@ module "ec2" {
   app_directory             = var.app_directory
   ssm_parameter_prefix      = var.ssm_parameter_prefix
   tags                      = local.common_tags
+  depends_on = [
+    module.ssm,
+    module.s3
+  ]
 }
 
 check "public_or_nat_egress" {

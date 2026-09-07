@@ -15,12 +15,27 @@ private_subnet_cidr = "10.40.11.0/24"
 # NAT Gateway enables outbound internet from private subnets but has hourly and data charges.
 enable_nat_gateway = false
 
-# Initial Phase 1 host. Public IP can be useful for package installs without NAT, but SSH remains closed by default.
-assign_public_ip   = true
-instance_type      = "t2.micro"
+# Launch Template and Auto Scaling Group configuration
+instance_type      = "t3.micro"
 cpu_credits        = "standard"
 ubuntu_release     = "24.04"
-root_volume_size_gb = 8
+root_volume_size_gb = 30
+root_volume_type   = "gp3"
+
+asg_min_size         = 1
+asg_desired_capacity = 1
+asg_max_size         = 2
+
+# Application Load Balancer and Blue-Green readiness
+enable_alb             = true
+alb_ingress_ports      = [80]
+alb_ingress_cidrs      = ["0.0.0.0/0"]
+app_port               = 80
+health_check_path      = "/health"
+active_deployment_slot = "blue"
+
+# Standby green ASG (keep false until doing blue-green deployment)
+enable_green_asg       = false
 
 # Prefer SSM Session Manager. Enable SSH only for break-glass and restrict to a /32.
 use_ssm           = true
@@ -38,6 +53,10 @@ allowed_app_cidrs = []
 create_kms_key          = false
 enable_cloudwatch_agent = false
 ssm_parameter_prefix    = "/munch-catering/dev"
+
+# Supply an existing Git SHA tag present in both ECR repositories through
+# TF_VAR_initial_image_tag in the GitHub environment. Do not use latest.
+# initial_image_tag = "0123456789abcdef0123456789abcdef01234567"
 
 additional_tags = {
   CostCenter = "platform"

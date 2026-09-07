@@ -1,3 +1,6 @@
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 data "aws_iam_policy_document" "ec2_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -76,8 +79,8 @@ data "aws_iam_policy_document" "ecr_pull" {
       "ecr:BatchGetImage"
     ]
     resources = [
-      "arn:aws:ecr:eu-west-1:554013701313:repository/munch-catering-backend",
-      "arn:aws:ecr:eu-west-1:554013701313:repository/munch-catering-frontend"
+      "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/munch-catering-backend",
+      "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/munch-catering-frontend"
     ]
   }
 }
@@ -93,6 +96,45 @@ resource "aws_iam_policy" "ecr_pull" {
 resource "aws_iam_role_policy_attachment" "ecr_pull" {
   role       = aws_iam_role.ec2.name
   policy_arn = aws_iam_policy.ecr_pull.arn
+}
+
+data "aws_iam_policy_document" "s3_media_access" {
+  count = length(var.s3_bucket_arns) > 0 ? 1 : 0
+
+  statement {
+    sid    = "S3BucketList"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation"
+    ]
+    resources = var.s3_bucket_arns
+  }
+
+  statement {
+    sid    = "S3ObjectCrud"
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    resources = [for arn in var.s3_bucket_arns : "${arn}/*"]
+  }
+}
+
+resource "aws_iam_policy" "s3_media_access" {
+  count       = length(var.s3_bucket_arns) > 0 ? 1 : 0
+  name        = "${var.name_prefix}-s3-media-access"
+  description = "Scoped S3 access for portfolio media files."
+  policy      = data.aws_iam_policy_document.s3_media_access[0].json
+  tags        = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "s3_media_access" {
+  count      = length(var.s3_bucket_arns) > 0 ? 1 : 0
+  role       = aws_iam_role.ec2.name
+  policy_arn = aws_iam_policy.s3_media_access[0].arn
 }
 
 resource "aws_iam_instance_profile" "ec2" {
