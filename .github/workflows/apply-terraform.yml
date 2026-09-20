@@ -28,6 +28,10 @@ jobs:
       # Convert control-plane hangs into fast, readable errors
       AWS_MAX_ATTEMPTS: 6
       AWS_RETRY_MODE: adaptive
+      # Verbose provider logging; uploaded as artifact on failure for diagnosis
+      TF_LOG: DEBUG
+      TF_LOG_PATH: /tmp/terraform-provider.log
+      TF_LOG_PROVIDER: DEBUG
       TF_VAR_aws_region: ${{ vars.TF_VAR_aws_region }}
       TF_VAR_environment: ${{ vars.TF_VAR_environment }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
@@ -60,7 +64,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.11.4
+          terraform_version: 1.15.5
 
       - name: Debug GitHub context
         run: |
@@ -132,3 +136,14 @@ jobs:
         run: |
           cd infra/terraform/environments/${{ github.event.inputs.environment }}
           terraform apply -input=false -auto-approve plan.tfplan
+
+      - name: Upload debug logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-debug-logs
+          path: |
+            /tmp/terraform-provider.log
+            infra/terraform/environments/${{ github.event.inputs.environment }}/state-summary.txt
+          include-hidden-files: true
+          if-no-files-found: warn
