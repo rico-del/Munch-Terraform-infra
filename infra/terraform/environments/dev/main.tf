@@ -12,6 +12,12 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
+  # Fail fast on control-plane hangs (observed: S3 CreateBucket response
+  # never processed by provider, run stalls for 18+ min) instead of
+  # stalling for the 30-minute default read timeout.
+  retry_mode  = "adaptive"
+  max_retries = 6
+
   default_tags {
     tags = local.common_tags
   }

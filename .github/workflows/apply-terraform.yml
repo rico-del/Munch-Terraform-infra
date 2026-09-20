@@ -8,6 +8,12 @@ on:
         required: true
         default: 'dev'
 
+# Queue instead of overlap: two concurrent applies against the same state
+# silently clobber each other (observed 2026-09-13: imports overwritten).
+concurrency:
+  group: terraform-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   apply:
     name: Plan and Apply (manual)
@@ -19,6 +25,9 @@ jobs:
       id-token: write
 
     env:
+      # Convert control-plane hangs into fast, readable errors
+      AWS_MAX_ATTEMPTS: 6
+      AWS_RETRY_MODE: adaptive
       TF_VAR_aws_region: ${{ vars.TF_VAR_aws_region }}
       TF_VAR_environment: ${{ vars.TF_VAR_environment }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
@@ -99,6 +108,13 @@ jobs:
           terraform init \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -input=false
+
+      - name: Dump state summary (debug)
+        run: |
+          cd infra/terraform/environments/${{ github.event.inputs.environment }}
+          terraform state pull | grep -o '"module[^" ]*' | sort -u > state-summary.txt || true
+          wc -l state-summary.txt
+          cat state-summary.txt
 
       - name: Terraform plan
         run: |
