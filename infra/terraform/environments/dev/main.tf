@@ -4,7 +4,9 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      # 5.x line ended at 5.100.0 which reproducibly hangs on aws_s3_bucket
+      # create (4/4 runs). 6.x uses newer AWS SDK internals.
+      version = "~> 6.0"
     }
   }
 }
